@@ -1,0 +1,17 @@
+curl -i -X POST http://localhost:9000/clientes ^
+  -H "Content-Type: application/json" ^
+  -d "{\"nome\":\"Carlos da Silva\",\"email\":\"carlos@example.com\",\"telefone\":\"21999990003\"}"
+
+
+curl -i http://localhost:9000/clientes
+
+curl -i http://localhost:9000/clientes/1
+
+curl -i -X PUT http://localhost:9000/clientes/3 ^
+  -H "Content-Type: application/json" ^
+  -d "{\"nome\":\"Carlos Atualizado\",\"email\":\"carlos.up@example.com\"}"
+
+curl -i -X DELETE http://localhost:9000/clientes/4
+
+// Teste de erro:
+curl -i -X POST http://localhost:9000/clientes -H "Content-Type: application/json" -d '{bad json}'

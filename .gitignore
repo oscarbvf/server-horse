@@ -1,0 +1,75 @@
+############################################
+# Delphi / RAD Studio – Build artifacts
+############################################
+
+# Platforms
+Win32/
+Win64/
+Android/
+Android64/
+iOSDevice64/
+iOSSimulator/
+Linux64/
+OSX64/
+
+# Binaries and intermediate files
+*.exe
+*.dll
+*.bpl
+*.dcu
+*.o
+*.obj
+*.rsm
+*.map
+*.drc
+*.so
+*.a
+
+############################################
+# Delphi – IDE temporary files
+############################################
+
+# Local configuration (NEVER commit)
+*.local
+*.dproj.local
+*.groupproj.local
+
+# Cache and indexes
+*.identcache
+*.stat
+*.tvsconfig
+
+# Editor history
+__history/
+
+# Sessions / layouts
+*.dsk
+*.skincfg
+
+############################################
+# Delphi – Deployment and build automation
+############################################
+
+*.deployproj
+*.log
+
+############################################
+# Windows / OS
+############################################
+
+Thumbs.db
+Desktop.ini
+
+############################################
+# Auxiliary IDEs (safe to ignore)
+############################################
+
+.vscode/
+.idea/
+
+############################################
+# Backup files
+############################################
+
+*.~*
+*.bak
