@@ -132,6 +132,7 @@ This structure keeps HTTP concerns separated from data access logic.
 
 ## Project Structure (Simplified)
 
+```
 ServerHorse/
 ├── ServerHorse.dpr
 ├── ServerHorse.dproj
@@ -144,7 +145,7 @@ ServerHorse/
 ├── Services/
 │ └── *.pas
 └── README.md
-
+```
 
 > Folder names may evolve as the project grows.
 
