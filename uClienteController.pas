@@ -33,6 +33,7 @@ begin
   Result := arr;
 end;
 
+{
 procedure GetClientes(Req: THorseRequest; Res: THorseResponse);
 var
   Arr: TJSONArray;
@@ -47,6 +48,31 @@ begin
       .Send(Arr.ToJSON);
   finally
     DataModule1.FDQuery1.Close;
+  end;
+end;
+}
+procedure GetClientes(Req: THorseRequest; Res: THorseResponse);
+var
+  DM: TDataModule1;
+  Arr: TJSONArray;
+begin
+  DM := TDataModule1.Create(nil);
+  try
+    DM.FDQuery1.SQL.Text := 'SELECT Id, Nome, Email, Telefone FROM Clientes';
+    DM.FDQuery1.Open;
+
+    Arr := QueryToJSONArray(DM.FDQuery1);
+    try
+      Res
+        .Status(200)
+        .ContentType('application/json')
+        .Send(Arr.ToJSON);
+    finally
+      Arr.Free;
+    end;
+  finally
+    DM.FDQuery1.Close;
+    DM.Free;
   end;
 end;
 

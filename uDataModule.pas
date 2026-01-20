@@ -20,9 +20,13 @@ type
     procedure DataModuleCreate(Sender: TObject);
   private
     { Private declarations }
+    function GetDatabaseFilePath: string;
+    procedure ConfigureConnection;
+    procedure ConnectDatabase;
+    procedure InitializeDatabase;
+    procedure CreateClientesTable;
   public
     { Public declarations }
-    procedure EnsureDB;
   end;
 
 var
@@ -34,20 +38,29 @@ implementation
 
 {$R *.dfm}
 
-procedure TDataModule1.DataModuleCreate(Sender: TObject);
+procedure TDataModule1.ConfigureConnection;
 begin
-  // Ajuste do caminho do DB: arquivo na mesma pasta do EXE
-  FDConnection1.Params.DriverID := 'SQLite';
-  FDConnection1.Params.Database := ExtractFilePath(ParamStr(0)) + 'db\database.db';
-  FDConnection1.Params.Add('LockingMode=Normal');
   FDConnection1.LoginPrompt := False;
-  FDConnection1.Connected := True;
-  EnsureDB;
+  FDConnection1.Params.Clear;
+  FDConnection1.Params.DriverID := 'SQLite';
+  FDConnection1.Params.Add('LockingMode=Normal');
+  FDConnection1.Params.Database := GetDatabaseFilePath;
 end;
 
-procedure TDataModule1.EnsureDB;
+procedure TDataModule1.ConnectDatabase;
 begin
-  // Se não existir, cria tabela Clientes simples
+  try
+    FDConnection1.Connected := True;
+  except
+    on E: Exception do
+      raise Exception.Create(
+        'Failed to connect to SQLite database. ' + E.Message
+      );
+  end;
+end;
+
+procedure TDataModule1.CreateClientesTable;
+begin
   FDQuery1.Connection := FDConnection1;
   FDQuery1.SQL.Text :=
     'CREATE TABLE IF NOT EXISTS Clientes (' +
@@ -56,7 +69,32 @@ begin
     ' Email TEXT,' +
     ' Telefone TEXT' +
     ')';
+
   FDQuery1.ExecSQL;
+end;
+
+procedure TDataModule1.DataModuleCreate(Sender: TObject);
+begin
+  ConfigureConnection;
+  ConnectDatabase;
+  InitializeDatabase;
+end;
+
+function TDataModule1.GetDatabaseFilePath: string;
+begin
+  Result := ExtractFilePath(ParamStr(0)) + 'db\database.db';
+end;
+
+procedure TDataModule1.InitializeDatabase;
+begin
+  FDConnection1.StartTransaction;
+  try
+    CreateClientesTable;
+    FDConnection1.Commit;
+  except
+    FDConnection1.Rollback;
+    raise;
+  end;
 end;
 
 end.
