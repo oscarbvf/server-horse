@@ -1,71 +1,4 @@
-# ServerHorse
-
-## Overview
-
-**ServerHorse** is a lightweight RESTful backend service built with **Delphi** using the **Horse framework**.
-
-The project demonstrates how to build a clean and minimal REST API in Delphi, including routing, request handling, persistence, and basic layering. It is designed as a technical and educational project, not as a production-ready system.
-
----
-
-## Purpose
-
-The main goals of this project are:
-
-- To demonstrate REST API development in Delphi using Horse
-- To showcase a simple but structured backend architecture
-- To integrate with a desktop client application (**ClientVCL**)
-- To serve as a backend reference project within a Delphi portfolio
-
----
-
-## Key Features
-
-- RESTful API built with **Horse**
-- Clear routing and controller organization
-- Persistence using **SQLite**
-- Database access via **FireDAC**
-- Automatic database initialization on first run
-- JSON-based request and response payloads
-- Tested using **Postman** and `curl`
-
----
-
-## Architecture (High-Level)
-
-The project follows a straightforward layered structure:
-
-- **API Layer**
-  - Horse server configuration
-  - Route definitions and request/response handling
-
-- **Controller Layer**
-  - Endpoint logic
-  - Validation and response formatting
-
-- **Persistence Layer**
-  - FireDAC configuration
-  - SQLite database access
-  - Simple repository-style access
-
-This structure keeps HTTP concerns separated from data access logic.
-
----
-
-## Technologies Used
-
-- Delphi (RAD Studio – modern versions)
-- Horse framework
-- FireDAC
-- SQLite
-- JSON (System.JSON)
-- Windows platform
-
----
-
-## Project Structure (Simplified)
-
-# ServerHorse
+﻿# ServerHorse
 
 ## Overview
 
@@ -144,6 +77,9 @@ ServerHorse/
 │ └── Database.db
 ├── Services/
 │ └── *.pas
+├── modules/
+│ └── horse
+│ └──── (horse files)
 └── README.md
 ```
 
@@ -155,23 +91,92 @@ ServerHorse/
 
 - Database engine: **SQLite**
 - Database file: `database.db`
-- The database and required tables are created automatically on first run.
+- The application automatically initializes the SQLite database at startup
 
-No manual setup is required.
+- Connection configuration is isolated from schema initialization
+- Required tables are created inside a transaction
+- Schema creation uses idempotent SQL (`CREATE TABLE IF NOT EXISTS`)
 
 ---
 
 ## API Overview
 
-Example endpoints:
+The ServerHorse project exposes a simple RESTful API for managing clients.
+All endpoints use JSON for request and response payloads.
 
-- `GET /clientes`  
-  Returns a list of clients
+### Endpoints
 
-- `POST /clientes`  
-  Creates a new client
+#### GET /clientes
 
-Payloads are JSON-based.
+Returns a list of all registered clients.
+
+**Response**
+- `200 OK`
+- JSON array of client objects
+
+
+#### GET /clientes/{id}
+
+Returns a single client by its identifier.
+
+**Parameters**
+- `id` (integer) – Client identifier
+
+**Response**
+- `200 OK` – Client found
+- `404 Not Found` – Client does not exist
+
+
+#### POST /clientes
+
+Creates a new client.
+
+**Request body**
+```
+{
+  "nome": "Jane Doe",
+  "email": "jane.doe@email.com",
+  "telefone": "+55 21 98888-8888"
+}
+```
+
+**Response**
+- `201 Created`
+- Returns the created client object
+
+
+#### PUT /clientes/{id}
+
+Updates an existing client.
+
+**Parameters**
+
+- `id` (integer) – Client identifier
+
+**Request body**
+```
+{
+  "nome": "Jane Doe Updated",
+  "email": "jane.updated@email.com",
+  "telefone": "+55 21 97777-7777"
+}
+```
+
+**Response**
+- `200 OK`
+- `404 Not Found`
+
+
+#### DELETE /clientes/{id} ####
+
+Deletes a client.
+
+**Parameters**
+- `id` (integer) – Client identifier
+
+**Response**
+- `204 No Content`
+- `404 Not Found`
 
 ---
 

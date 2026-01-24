@@ -6,9 +6,7 @@ program ServerHorse;
 
 uses
   System.SysUtils,
-  uMain in 'uMain.pas',
-  uDataModule in 'uDataModule.pas' {DataModule1: TDataModule},
-  uClienteController in 'uClienteController.pas';
+  uMain in 'uMain.pas';
 
 begin
   try
