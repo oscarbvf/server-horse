@@ -214,18 +214,20 @@ begin
       DM.FDConnection1.Connected := True;
       DM.FDConnection1.StartTransaction;
       try
-        DM.FDQuery1.SQL.Text :=
-          'INSERT INTO Clientes (Nome, Email, Telefone) ' +
-          'VALUES (:Nome, :Email, :Telefone)';
+        with DM.FDQuery1 do begin
+          SQL.Text :=
+            'INSERT INTO Clientes (Nome, Email, Telefone) ' +
+            'VALUES (:Nome, :Email, :Telefone)';
 
-        DM.FDQuery1.ParamByName('Nome').AsString := nome;
-        DM.FDQuery1.ParamByName('Email').AsString := email;
-        DM.FDQuery1.ParamByName('Telefone').AsString := telefone;
-        DM.FDQuery1.ExecSQL;
+          ParamByName('Nome').AsString := nome;
+          ParamByName('Email').AsString := email;
+          ParamByName('Telefone').AsString := telefone;
+          ExecSQL;
 
-        DM.FDQuery1.SQL.Text := 'SELECT last_insert_rowid() AS Id';
-        DM.FDQuery1.Open;
-        NovoId := DM.FDQuery1.FieldByName('Id').AsInteger;
+          SQL.Text := 'SELECT last_insert_rowid() AS Id';
+          Open;
+          NovoId := FieldByName('Id').AsInteger;
+        end;
 
         DM.FDConnection1.Commit;
         Res
@@ -295,6 +297,7 @@ end;}
 procedure UpdateCliente(Req: THorseRequest; Res: THorseResponse);
 var
   id: Integer;
+  DM: TDataModule1;
   jo: TJSONObject;
   nome, email, telefone: String;
 begin
@@ -314,15 +317,82 @@ begin
   end;
 
   try
+    if not Jo.TryGetValue<string>('Nome', nome) or
+       not Jo.TryGetValue<string>('Email', email) then begin
+      Res
+        .Status(400)
+        .ContentType('application/json')
+        .Send('{"error":"nome and email are required"}');
+      Exit;
+    end;
+
+    Jo.TryGetValue<string>('Telefone', telefone);
+
+    DM := TDataModule1.Create(nil);
+    try
+      DM.FDConnection1.Connected := True;
+      DM.FDConnection1.StartTransaction;
+      try
+        with DM.FDQuery1 do begin
+          SQL.Text :=
+            'UPDATE Clientes ' +
+            'SET Nome = :Nome, Email = :Email, Telefone = :Telefone ' +
+            'WHERE Id = :Id';
+
+          ParamByName('Nome').AsString := nome;
+          ParamByName('Email').AsString := email;
+          ParamByName('Telefone').AsString := telefone;
+          ParamByName('Id').AsInteger := id;
+          ExecSQL;
+        end;
+
+        if DM.FDQuery1.RowsAffected = 0 then begin
+          DM.FDConnection1.Rollback;
+
+          Res
+            .Status(404)
+            .ContentType('application/json')
+            .Send('{"error":"not found"}');
+          Exit;
+        end;
+
+        DM.FDConnection1.Commit;
+
+        Res
+          .Status(200)
+          .ContentType('application/json')
+          .Send('{"ok":true}');
+      except
+        on E: Exception do
+        begin
+          DM.FDConnection1.Rollback;
+
+          Res
+            .Status(500)
+            .ContentType('application/json')
+            .Send('{"error":"internal server error"}');
+        end;
+      end;
+    finally
+      DM.FDQuery1.Close;
+      DM.Free;
+    end;
+  finally
+    Jo.Free;
+  end;
+end;
+
+{
+  try
     nome := jo.GetValue('Nome').Value;
     email := jo.GetValue('Email').Value;
     telefone := jo.GetValue('Telefone').Value;
 
     if nome.IsEmpty or email.IsEmpty then begin
       Res.Status(400)
-        .ContentType('application/json')
-        .Send('{"error":"nome and email are required"}');
-      Exit;
+        .ContentType('application/json')}
+//        .Send('{"error":"nome and email are required"}');
+{      Exit;
     end;
 
     DataModule1.FDConnection1.StartTransaction;
@@ -339,30 +409,30 @@ begin
       if DataModule1.FDQuery1.RowsAffected = 0 then begin
         DataModule1.FDConnection1.Rollback;
         Res.Status(404)
-          .ContentType('application/json')
-          .Send('{"error":"not found"}');
-        Exit;
+          .ContentType('application/json')}
+//          .Send('{"error":"not found"}');
+{        Exit;
       end;
 
       DataModule1.FDConnection1.Commit;
 
       Res.Status(200)
-        .ContentType('application/json')
-        .Send('{"ok":true}');
-    except
+        .ContentType('application/json')}
+//        .Send('{"ok":true}');
+{    except
       on E: Exception do begin
         DataModule1.FDConnection1.Rollback;
 
         Res.Status(500)
-          .ContentType('application/json')
-          .Send('{"error":"internal server error"}');
-      end;
+          .ContentType('application/json')}
+//          .Send('{"error":"internal server error"}');
+{      end;
     end;
   finally
     DataModule1.FDQuery1.Close;
     jo.Free;
   end;
-end;
+end;}
 
 procedure DeleteCliente(Req: THorseRequest; Res: THorseResponse);
 var
