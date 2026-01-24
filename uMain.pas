@@ -3,7 +3,7 @@ unit uMain;
 interface
 
 uses
-  Horse, System.SysUtils, uDataModule, uClienteController, Horse.Request, Horse.Response,
+  Horse, System.SysUtils, uClienteController, Horse.Request, Horse.Response,
   Horse.Core, Vcl.Dialogs;
 
 procedure StartServer;
@@ -12,7 +12,6 @@ implementation
 
 procedure StartServer;
 begin
-//  DataModule1 := TDataModule1.Create(nil); // instancia o DataModule e conecta
   RegisterClienteRoutes;
 
   Writeln('Server starting on http://0.0.0.0:9000 ...');
