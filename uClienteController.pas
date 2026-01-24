@@ -33,24 +33,6 @@ begin
   Result := arr;
 end;
 
-{
-procedure GetClientes(Req: THorseRequest; Res: THorseResponse);
-var
-  Arr: TJSONArray;
-begin
-  DataModule1.FDQuery1.SQL.Text := 'SELECT * FROM Clientes';
-  DataModule1.FDQuery1.Open;
-  try
-    Arr := QueryToJSONArray(DataModule1.FDQuery1);
-    Res
-      .Status(200)
-      .ContentType('application/json')
-      .Send(Arr.ToJSON);
-  finally
-    DataModule1.FDQuery1.Close;
-  end;
-end;
-}
 procedure GetClientes(Req: THorseRequest; Res: THorseResponse);
 var
   DM: TDataModule1;
@@ -75,48 +57,6 @@ begin
     DM.Free;
   end;
 end;
-
-{
-procedure GetClienteById(Req: THorseRequest; Res: THorseResponse);
-var
-  id: Integer;
-  obj: TJSONObject;
-begin
-  if not TryStrToInt(Req.Params['Id'], id) or (id <= 0) then begin
-    Res.Status(400).Send<TJSONObject>(
-      TJSONObject.Create.AddPair('error', 'invalid id')
-    );
-    Exit;
-  end;
-
-  DataModule1.FDQuery1.SQL.Text := 'SELECT * FROM Clientes WHERE Id = :Id';
-  DataModule1.FDQuery1.ParamByName('Id').AsInteger := id;
-  DataModule1.FDQuery1.Open;
-
-  try
-    if DataModule1.FDQuery1.IsEmpty then
-      Res.Status(404).Send<TJSONObject>(
-        TJSONObject.Create.AddPair('error', 'not found'))
-    else begin
-      obj := TJSONObject.Create;
-      try
-        obj.AddPair('Id', TJSONNumber.Create(DataModule1.FDQuery1.FieldByName('Id').AsInteger));
-        obj.AddPair('Nome', TJSONString.Create(DataModule1.FDQuery1.FieldByName('Nome').AsString));
-        obj.AddPair('Email', TJSONString.Create(DataModule1.FDQuery1.FieldByName('Email').AsString));
-        obj.AddPair('Telefone', TJSONString.Create(DataModule1.FDQuery1.FieldByName('Telefone').AsString));
-        Res
-          .Status(200)
-          .ContentType('application/json')
-          .Send(obj.ToJSON);
-      finally
-        obj.Free;
-      end;
-    end;
-  finally
-    DataModule1.FDQuery1.Close;
-  end;
-end;
-}
 
 procedure GetClienteById(Req: THorseRequest; Res: THorseResponse);
 var
@@ -189,8 +129,6 @@ begin
   end;
 
   try
-//    nome := jo.GetValue('Nome').Value;
- //   email := jo.GetValue('Email').Value;
     if not Jo.TryGetValue<string>('Nome', nome) or
        not Jo.TryGetValue<string>('Email', email) then begin
       Res
@@ -199,15 +137,8 @@ begin
         .Send('{"error":"nome and email are required"}');
       Exit;
     end;
-//    telefone := jo.GetValue('Telefone').Value;
-    Jo.TryGetValue<string>('Telefone', telefone);
 
-//    if Nome.IsEmpty or Email.IsEmpty then begin
-//      Res.Status(400)
-//        .ContentType('application/json')
-//        .Send('{"error":"nome and email are required"}');
-//      Exit;
-//    end;
+    Jo.TryGetValue<string>('Telefone', telefone);
 
     DM := TDataModule1.Create(nil);
     try
@@ -253,46 +184,6 @@ begin
     Jo.Free;
   end;
 end;
-
-
-{    if not DataModule1.FDConnection1.Connected then
-      DataModule1.FDConnection1.Connected := True;
-
-    DataModule1.FDConnection1.StartTransaction;
-    try
-      DataModule1.FDQuery1.Close;
-      DataModule1.FDQuery1.SQL.Text := 'INSERT INTO Clientes (Nome, Email, Telefone) VALUES (:Nome, :Email, :Telefone)';
-      DataModule1.FDQuery1.Params.ArraySize := 1;
-      DataModule1.FDQuery1.ParamByName('Nome').AsString := nome;
-      DataModule1.FDQuery1.ParamByName('Email').AsString := email;
-      DataModule1.FDQuery1.ParamByName('Telefone').AsString := telefone;
-      DataModule1.FDQuery1.ExecSQL;
-
-      // Last created id
-      DataModule1.FDQuery1.Close;
-      DataModule1.FDQuery1.SQL.Text := 'SELECT last_insert_rowid() AS id';
-      DataModule1.FDQuery1.Open;
-      NovoId := DataModule1.FDQuery1.FieldByName('Id').AsInteger;
-      DataModule1.FDConnection1.Commit;
-
-      Res
-        .Status(201)
-        .ContentType('application/json')}
-//        .Send(Format('{"id":%d}', [NovoId]));
-{        except
-    on E: Exception do begin
-        DataModule1.FDConnection1.Rollback;
-
-        Res.Status(500)
-          .ContentType('application/json')}
-//          .Send('{"error":"internal server error"}');
-{      end;
-    end;
-  finally
-    DataModule1.FDQuery1.Close;
-    jo.Free;
-  end;
-end;}
 
 procedure UpdateCliente(Req: THorseRequest; Res: THorseResponse);
 var
@@ -382,60 +273,9 @@ begin
   end;
 end;
 
-{
-  try
-    nome := jo.GetValue('Nome').Value;
-    email := jo.GetValue('Email').Value;
-    telefone := jo.GetValue('Telefone').Value;
-
-    if nome.IsEmpty or email.IsEmpty then begin
-      Res.Status(400)
-        .ContentType('application/json')}
-//        .Send('{"error":"nome and email are required"}');
-{      Exit;
-    end;
-
-    DataModule1.FDConnection1.StartTransaction;
-    try
-      DataModule1.FDQuery1.Close;
-      DataModule1.FDQuery1.SQL.Text :=
-        'UPDATE Clientes SET Nome = :Nome, Email = :Email, Telefone = :Telefone WHERE Id = :Id';
-      DataModule1.FDQuery1.ParamByName('Nome').AsString := nome;
-      DataModule1.FDQuery1.ParamByName('Email').AsString := email;
-      DataModule1.FDQuery1.ParamByName('Telefone').AsString := telefone;
-      DataModule1.FDQuery1.ParamByName('Id').AsInteger := id;
-      DataModule1.FDQuery1.ExecSQL;
-
-      if DataModule1.FDQuery1.RowsAffected = 0 then begin
-        DataModule1.FDConnection1.Rollback;
-        Res.Status(404)
-          .ContentType('application/json')}
-//          .Send('{"error":"not found"}');
-{        Exit;
-      end;
-
-      DataModule1.FDConnection1.Commit;
-
-      Res.Status(200)
-        .ContentType('application/json')}
-//        .Send('{"ok":true}');
-{    except
-      on E: Exception do begin
-        DataModule1.FDConnection1.Rollback;
-
-        Res.Status(500)
-          .ContentType('application/json')}
-//          .Send('{"error":"internal server error"}');
-{      end;
-    end;
-  finally
-    DataModule1.FDQuery1.Close;
-    jo.Free;
-  end;
-end;}
-
 procedure DeleteCliente(Req: THorseRequest; Res: THorseResponse);
 var
+  DM: TDataModule1;
   id: Integer;
 begin
   if not TryStrToInt(Req.Params['id'], id) or (id <= 0) then begin
@@ -445,24 +285,29 @@ begin
     Exit;
   end;
 
-  DataModule1.FDConnection1.StartTransaction;
+  DM := TDataModule1.Create(nil);
+
   try
+    DM.FDConnection1.Connected := True;
+    DM.FDConnection1.StartTransaction;
     try
-      DataModule1.FDQuery1.Close;
-      DataModule1.FDQuery1.SQL.Text := 'DELETE FROM Clientes WHERE Id = :Id';
-      DataModule1.FDQuery1.ParamByName('Id').AsInteger := id;
-      DataModule1.FDQuery1.ExecSQL;
+      with DM.FDQuery1 do begin
+        Close;
+        SQL.Text := 'DELETE FROM Clientes WHERE Id = :Id';
+        ParamByName('Id').AsInteger := id;
+        ExecSQL;
 
-      if DataModule1.FDQuery1.RowsAffected = 0 then begin
-        DataModule1.FDConnection1.Rollback;
+        if RowsAffected = 0 then begin
+          DataModule1.FDConnection1.Rollback;
 
-        Res.Status(404)
-          .ContentType('application/json')
-          .Send('{"error":"not found"}');
-        Exit;
+          Res.Status(404)
+            .ContentType('application/json')
+            .Send('{"error":"not found"}');
+          Exit;
+        end;
       end;
 
-      DataModule1.FDConnection1.Commit;
+      DM.FDConnection1.Commit;
 
       Res.Status(200)
         .ContentType('application/json')
@@ -470,7 +315,7 @@ begin
 
     except
       on E: Exception do begin
-        DataModule1.FDConnection1.Rollback;
+        DM.FDConnection1.Rollback;
 
         Res.Status(500)
           .ContentType('application/json')
@@ -478,7 +323,8 @@ begin
       end;
     end;
   finally
-    DataModule1.FDQuery1.Close;
+    DM.FDQuery1.Close;
+    DM.Free;
   end;
 end;
 
