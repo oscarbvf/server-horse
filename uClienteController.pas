@@ -22,7 +22,7 @@ begin
   try
     DM.OpenClientes;
 
-    Arr := ClientesQueryToJSONArray(DM.FDQuery1);
+    Arr := QueryToJSONArray(DM.FDQuery1); // ClientesQueryToJSONArray(DM.FDQuery1);
     try
       Res
         .Status(200)

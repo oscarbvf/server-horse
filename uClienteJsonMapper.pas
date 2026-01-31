@@ -5,28 +5,27 @@ interface
 uses
   System.JSON, FireDAC.Comp.Client;
 
-function ClientesQueryToJSONArray(AQuery: TFDQuery): TJSONArray;
+function QueryToJSONArray(AQuery: TFDQuery): TJSONArray;
 
 implementation
 
-function ClientesQueryToJSONArray(AQuery: TFDQuery): TJSONArray;
+function QueryToJSONArray(AQuery: TFDQuery): TJSONArray;
 var
-  Obj: TJSONObject;
+  arr: TJSONArray;
+  obj: TJSONObject;
 begin
-  Result := TJSONArray.Create;
-
+  arr := TJSONArray.Create;
   AQuery.First;
-  while not AQuery.Eof do
-  begin
-    Obj := TJSONObject.Create;
-    Obj.AddPair('id', TJSONNumber.Create(AQuery.FieldByName('Id').AsInteger));
-    Obj.AddPair('nome', AQuery.FieldByName('Nome').AsString);
-    Obj.AddPair('email', AQuery.FieldByName('Email').AsString);
-    Obj.AddPair('telefone', AQuery.FieldByName('Telefone').AsString);
-
-    Result.AddElement(Obj);
+  while not AQuery.Eof do begin
+    obj := TJSONObject.Create;
+    obj.AddPair('Id', TJSONNumber.Create(AQuery.FieldByName('Id').AsInteger));
+    obj.AddPair('Nome', TJSONString.Create(AQuery.FieldByName('Nome').AsString));
+    obj.AddPair('Email', TJSONString.Create(AQuery.FieldByName('Email').AsString));
+    obj.AddPair('Telefone', TJSONString.Create(AQuery.FieldByName('Telefone').AsString));
+    arr.Add(obj);
     AQuery.Next;
   end;
+  Result := arr;
 end;
 
 end.
