@@ -93,7 +93,29 @@ end;
 
 function TDataModule1.DeleteCliente(AId: Integer): Boolean;
 begin
-  Result := False;
+
+  if not FDConnection1.Connected then
+    FDConnection1.Connected := True;
+
+  FDConnection1.StartTransaction;
+  try
+    FDQuery1.Close;
+    FDQuery1.SQL.Text :=
+      'DELETE FROM Clientes WHERE Id = :Id';
+
+    FDQuery1.ParamByName('Id').AsInteger := AId;
+    FDQuery1.ExecSQL;
+
+    Result := FDQuery1.RowsAffected > 0;
+
+    if Result then
+      FDConnection1.Commit
+    else
+      FDConnection1.Rollback;
+  except
+    FDConnection1.Rollback;
+    raise;
+  end;
 end;
 
 function TDataModule1.GetDatabaseFilePath: string;
@@ -116,7 +138,33 @@ end;
 function TDataModule1.InsertCliente(const ANome, AEmail,
   ATelefone: string): Integer;
 begin
-  Result := 0;
+
+  if not FDConnection1.Connected then
+    FDConnection1.Connected := True;
+
+  FDConnection1.StartTransaction;
+  try
+    FDQuery1.Close;
+    FDQuery1.SQL.Text :=
+      'INSERT INTO Clientes (Nome, Email, Telefone) ' +
+      'VALUES (:Nome, :Email, :Telefone)';
+
+    FDQuery1.ParamByName('Nome').AsString := ANome;
+    FDQuery1.ParamByName('Email').AsString := AEmail;
+    FDQuery1.ParamByName('Telefone').AsString := ATelefone;
+    FDQuery1.ExecSQL;
+
+    FDQuery1.Close;
+    FDQuery1.SQL.Text := 'SELECT last_insert_rowid() AS Id';
+    FDQuery1.Open;
+
+    Result := FDQuery1.FieldByName('Id').AsInteger;
+
+    FDConnection1.Commit;
+  except
+    FDConnection1.Rollback;
+    raise; // deixa o controller decidir o HTTP
+  end;
 end;
 
 function TDataModule1.LoadClienteById(AId: Integer;
@@ -154,7 +202,34 @@ end;
 function TDataModule1.UpdateCliente(AId: Integer; const ANome, AEmail,
   ATelefone: string): Boolean;
 begin
- Result := False;
+
+  if not FDConnection1.Connected then
+    FDConnection1.Connected := True;
+
+  FDConnection1.StartTransaction;
+  try
+    FDQuery1.Close;
+    FDQuery1.SQL.Text :=
+      'UPDATE Clientes ' +
+      'SET Nome = :Nome, Email = :Email, Telefone = :Telefone ' +
+      'WHERE Id = :Id';
+
+    FDQuery1.ParamByName('Nome').AsString := ANome;
+    FDQuery1.ParamByName('Email').AsString := AEmail;
+    FDQuery1.ParamByName('Telefone').AsString := ATelefone;
+    FDQuery1.ParamByName('Id').AsInteger := AId;
+    FDQuery1.ExecSQL;
+
+    Result := FDQuery1.RowsAffected > 0;
+
+    if Result then
+      FDConnection1.Commit
+    else
+      FDConnection1.Rollback;
+  except
+    FDConnection1.Rollback;
+    raise;
+  end;
 end;
 
 end.
