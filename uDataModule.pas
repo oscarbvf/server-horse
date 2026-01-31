@@ -40,9 +40,6 @@ type
     function DeleteCliente(AId: Integer): Boolean;
   end;
 
-var
-  DataModule1: TDataModule1;
-
 implementation
 
 {%CLASSGROUP 'System.Classes.TPersistent'}
