@@ -20,8 +20,7 @@ var
 begin
   arr := TJSONArray.Create;
   AQuery.First;
-  while not AQuery.Eof do
-  begin
+  while not AQuery.Eof do begin
     obj := TJSONObject.Create;
     obj.AddPair('Id', TJSONNumber.Create(AQuery.FieldByName('Id').AsInteger));
     obj.AddPair('Nome', TJSONString.Create(AQuery.FieldByName('Nome').AsString));
@@ -34,14 +33,35 @@ begin
 end;
 
 procedure GetClientes(Req: THorseRequest; Res: THorseResponse);
+//var
+//  DM: TDataModule1;
+//  Arr: TJSONArray;
+//begin
+//  DM := TDataModule1.Create(nil);
+//  try
+//    DM.FDQuery1.SQL.Text := 'SELECT Id, Nome, Email, Telefone FROM Clientes';
+//    DM.FDQuery1.Open;
+//
+//    Arr := QueryToJSONArray(DM.FDQuery1);
+//    try
+//      Res
+//        .Status(200)
+//        .ContentType('application/json')
+//        .Send(Arr.ToJSON);
+//    finally
+//      Arr.Free;
+//    end;
+//  finally
+//    DM.FDQuery1.Close;
+//    DM.Free;
+//  end;
 var
   DM: TDataModule1;
   Arr: TJSONArray;
 begin
   DM := TDataModule1.Create(nil);
   try
-    DM.FDQuery1.SQL.Text := 'SELECT Id, Nome, Email, Telefone FROM Clientes';
-    DM.FDQuery1.Open;
+    DM.OpenClientes;
 
     Arr := QueryToJSONArray(DM.FDQuery1);
     try
@@ -53,61 +73,88 @@ begin
       Arr.Free;
     end;
   finally
-    DM.FDQuery1.Close;
     DM.Free;
   end;
 end;
 
 procedure GetClienteById(Req: THorseRequest; Res: THorseResponse);
+//var
+//  Id: Integer;
+//  DM: TDataModule1;
+//  Obj: TJSONObject;
+//begin
+//  if not TryStrToInt(Req.Params['Id'], Id) or (Id <= 0) then begin
+//    Res
+//      .Status(400)
+//      .Send<TJSONObject>(
+//        TJSONObject.Create.AddPair('error', 'invalid id')
+//      );
+//    Exit;
+//  end;
+//
+//  DM := TDataModule1.Create(nil);
+//  try
+//    with DM.FDQuery1 do begin
+//      SQL.Text := 'SELECT Id, Nome, Email, Telefone FROM Clientes WHERE Id = :Id';
+//      ParamByName('Id').AsInteger := Id;
+//      Open;
+//
+//      if IsEmpty then begin
+//        Res
+//          .Status(404)
+//          .Send<TJSONObject>(
+//            TJSONObject.Create.AddPair('error', 'not found')
+//          );
+//        Exit;
+//      end;
+//    end;
+//
+//    Obj := TJSONObject.Create;
+//    try
+//      with DM.FDQuery1 do begin
+//        Obj.AddPair('Id', TJSONNumber.Create(FieldByName('Id').AsInteger));
+//        Obj.AddPair('Nome', TJSONString.Create(FieldByName('Nome').AsString));
+//        Obj.AddPair('Email', TJSONString.Create(FieldByName('Email').AsString));
+//        Obj.AddPair('Telefone', TJSONString.Create(FieldByName('Telefone').AsString));
+//      end;
+//
+//      Res
+//        .Status(200)
+//        .ContentType('application/json')
+//        .Send(Obj.ToJSON);
+//    finally
+//      Obj.Free;
+//    end;
+//  finally
+//    DM.FDQuery1.Close;
+//    DM.Free;
+//  end;
 var
-  Id: Integer;
   DM: TDataModule1;
+  Id: Integer;
   Obj: TJSONObject;
 begin
-  if not TryStrToInt(Req.Params['Id'], Id) or (Id <= 0) then begin
-    Res
-      .Status(400)
-      .Send<TJSONObject>(
-        TJSONObject.Create.AddPair('error', 'invalid id')
-      );
+  if not TryStrToInt(Req.Params['id'], Id) or (Id <= 0) then begin
+    Res.Status(400).Send('{"error":"invalid id"}');
     Exit;
   end;
 
   DM := TDataModule1.Create(nil);
   try
-    with DM.FDQuery1 do begin
-      SQL.Text := 'SELECT Id, Nome, Email, Telefone FROM Clientes WHERE Id = :Id';
-      ParamByName('Id').AsInteger := Id;
-      Open;
-
-      if IsEmpty then begin
-        Res
-          .Status(404)
-          .Send<TJSONObject>(
-            TJSONObject.Create.AddPair('error', 'not found')
-          );
-        Exit;
-      end;
-    end;
-
     Obj := TJSONObject.Create;
     try
-      with DM.FDQuery1 do begin
-        Obj.AddPair('Id', TJSONNumber.Create(FieldByName('Id').AsInteger));
-        Obj.AddPair('Nome', TJSONString.Create(FieldByName('Nome').AsString));
-        Obj.AddPair('Email', TJSONString.Create(FieldByName('Email').AsString));
-        Obj.AddPair('Telefone', TJSONString.Create(FieldByName('Telefone').AsString));
+      if not DM.LoadClienteById(Id, Obj) then begin
+        Res.Status(404).Send('{"error":"not found"}');
+        Exit;
       end;
 
-      Res
-        .Status(200)
-        .ContentType('application/json')
-        .Send(Obj.ToJSON);
+      Res.Status(200)
+         .ContentType('application/json')
+         .Send(Obj.ToJSON);
     finally
       Obj.Free;
     end;
   finally
-    DM.FDQuery1.Close;
     DM.Free;
   end;
 end;

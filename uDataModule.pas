@@ -9,7 +9,7 @@ uses
   FireDAC.Stan.Param, FireDAC.DatS, FireDAC.DApt.Intf, FireDAC.DApt, Data.DB,
   FireDAC.Comp.DataSet, FireDAC.Comp.Client, FireDAC.Stan.ExprFuncs,
   FireDAC.Phys.SQLiteWrapper.Stat, FireDAC.Phys.SQLiteDef, FireDAC.Comp.UI,
-  FireDAC.Phys.SQLite;
+  FireDAC.Phys.SQLite, System.JSON;
 
 type
   TDataModule1 = class(TDataModule)
@@ -27,6 +27,17 @@ type
     procedure CreateClientesTable;
   public
     { Public declarations }
+    procedure OpenClientes;
+    procedure OpenClienteById(AId: Integer);
+    function LoadClienteById(AId: Integer; AJson: TJSONObject): Boolean;
+    function InsertCliente(
+      const ANome, AEmail, ATelefone: string
+    ): Integer;
+    function UpdateCliente(
+      AId: Integer;
+      const ANome, AEmail, ATelefone: string
+    ): Boolean;
+    function DeleteCliente(AId: Integer): Boolean;
   end;
 
 var
@@ -80,6 +91,11 @@ begin
   InitializeDatabase;
 end;
 
+function TDataModule1.DeleteCliente(AId: Integer): Boolean;
+begin
+  Result := False;
+end;
+
 function TDataModule1.GetDatabaseFilePath: string;
 begin
   Result := ExtractFilePath(ParamStr(0)) + 'db\database.db';
@@ -95,6 +111,50 @@ begin
     FDConnection1.Rollback;
     raise;
   end;
+end;
+
+function TDataModule1.InsertCliente(const ANome, AEmail,
+  ATelefone: string): Integer;
+begin
+  Result := 0;
+end;
+
+function TDataModule1.LoadClienteById(AId: Integer;
+  AJson: TJSONObject): Boolean;
+begin
+  OpenClienteById(AId);
+
+  Result := not FDQuery1.IsEmpty;
+  if not Result then
+    Exit;
+
+  AJson.AddPair('Id', TJSONNumber.Create(FDQuery1.FieldByName('Id').AsInteger));
+  AJson.AddPair('Nome', FDQuery1.FieldByName('Nome').AsString);
+  AJson.AddPair('Email', FDQuery1.FieldByName('Email').AsString);
+  AJson.AddPair('Telefone', FDQuery1.FieldByName('Telefone').AsString);
+end;
+
+procedure TDataModule1.OpenClienteById(AId: Integer);
+begin
+  FDQuery1.Close;
+  FDQuery1.SQL.Text :=
+    'SELECT Id, Nome, Email, Telefone FROM Clientes WHERE Id = :Id';
+  FDQuery1.ParamByName('Id').AsInteger := AId;
+  FDQuery1.Open;
+end;
+
+procedure TDataModule1.OpenClientes;
+begin
+  FDQuery1.Close;
+  FDQuery1.SQL.Text :=
+    'SELECT Id, Nome, Email, Telefone FROM Clientes';
+  FDQuery1.Open;
+end;
+
+function TDataModule1.UpdateCliente(AId: Integer; const ANome, AEmail,
+  ATelefone: string): Boolean;
+begin
+ Result := False;
 end;
 
 end.
