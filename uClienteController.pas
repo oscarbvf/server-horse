@@ -11,7 +11,8 @@ procedure RegisterClienteRoutes;
 implementation
 
 uses
-  Horse.Request, Horse.Response, uClienteJsonMapper;
+  Horse.Request, Horse.Response, uClienteJsonMapper, Horse.Jhonson, Horse.HandleException,
+  uHttpHelpers;
 
 procedure GetClientes(Req: THorseRequest; Res: THorseResponse);
 var
@@ -22,7 +23,7 @@ begin
   try
     DM.OpenClientes;
 
-    Arr := QueryToJSONArray(DM.FDQuery1); // ClientesQueryToJSONArray(DM.FDQuery1);
+    Arr := QueryToJSONArray(DM.FDQuery1);
     try
       Res
         .Status(200)
@@ -42,21 +43,18 @@ var
   Id: Integer;
   Obj: TJSONObject;
 begin
-  if not TryStrToInt(Req.Params['id'], Id) or (Id <= 0) then begin
-    Res.Status(400).Send('{"error":"invalid id"}');
-    Exit;
-  end;
+  Id := GetIdParam(Req);
 
   DM := TDataModule1.Create(nil);
   try
     Obj := TJSONObject.Create;
     try
-      if not DM.LoadClienteById(Id, Obj) then begin
-        Res.Status(404).Send('{"error":"not found"}');
-        Exit;
-      end;
+      if not DM.LoadClienteById(Id, Obj) then
+        raise EHorseException.New
+          .Status(THTTPStatus.NotFound)
+          .Error('cliente not found');
 
-      Res.Status(200)
+      Res.Status(THTTPStatus.OK)
          .ContentType('application/json')
          .Send(Obj.ToJSON);
     finally
@@ -74,40 +72,21 @@ var
   NovoId: Integer;
   Nome, Email, Telefone: string;
 begin
-  Jo := TJSONObject.ParseJSONValue(Req.Body) as TJSONObject;
-  if not Assigned(Jo) then begin
-    Res.Status(400)
-       .ContentType('application/json')
-       .Send('{"error":"invalid json"}');
-    Exit;
-  end;
+  Jo := GetBodyAsJSON(Req);
 
   try
-    if not Jo.TryGetValue<string>('Nome', Nome) or Nome.Trim.IsEmpty or
-       not Jo.TryGetValue<string>('Email', Email) or Email.Trim.IsEmpty then begin
-      Res.Status(400)
-         .ContentType('application/json')
-         .Send('{"error":"nome and email are required"}');
-      Exit;
-    end;
 
-    Jo.TryGetValue<string>('Telefone', Telefone);
+    Nome := GetRequiredString(Jo, 'Nome');
+    Email := GetRequiredString(Jo, 'Email');
+    Telefone := GetOptionalString(Jo, 'Telefone');
 
     DM := TDataModule1.Create(nil);
     try
-      try
-        NovoId := DM.InsertCliente(Nome, Email, Telefone);
+      NovoId := DM.InsertCliente(Nome, Email, Telefone);
 
-        Res.Status(201)
-           .ContentType('application/json')
-           .Send(Format('{"id":%d}', [NovoId]));
-      except
-        on E: Exception do begin
-          Res.Status(500)
-             .ContentType('application/json')
-             .Send('{"error":"internal server error"}');
-        end;
-      end;
+      Res.Status(201)
+         .ContentType('application/json')
+         .Send(Format('{"id":%d}', [NovoId]));
     finally
       DM.Free;
     end;
@@ -123,55 +102,25 @@ var
   Jo: TJSONObject;
   Nome, Email, Telefone: string;
 begin
-  if not TryStrToInt(Req.Params['id'], Id) or (Id <= 0) then begin
-    Res.Status(400)
-       .ContentType('application/json')
-       .Send('{"error":"invalid id"}');
-    Exit;
-  end;
-
-  Jo := TJSONObject.ParseJSONValue(Req.Body) as TJSONObject;
-  if not Assigned(Jo) then begin
-    Res.Status(400)
-       .ContentType('application/json')
-       .Send('{"error":"invalid json"}');
-    Exit;
-  end;
+  Jo := GetBodyAsJSON(Req);
 
   try
-    if not Jo.TryGetValue<string>('Nome', Nome) or Nome.Trim.IsEmpty or
-       not Jo.TryGetValue<string>('Email', Email) or Email.Trim.IsEmpty then begin
-      Res.Status(400)
-         .ContentType('application/json')
-         .Send('{"error":"nome and email are required"}');
-      Exit;
-    end;
+    Id := GetIdParam(Req);
 
-    Jo.TryGetValue<string>('Telefone', Telefone);
+    Nome := GetRequiredString(Jo, 'Nome');
+    Email := GetRequiredString(Jo, 'Email');
+    Telefone := GetOptionalString(Jo, 'Telefone');
 
     DM := TDataModule1.Create(nil);
     try
-      try
-        if not DM.UpdateCliente(Id, Nome, Email, Telefone) then begin
-          Res.Status(404)
-             .ContentType('application/json')
-             .Send('{"error":"not found"}');
-          Exit;
-        end;
-
-        Res.Status(200)
-           .ContentType('application/json')
-           .Send('{"ok":true}');
-      except
-        on E: Exception do begin
-          Res.Status(500)
-             .ContentType('application/json')
-             .Send('{"error":"internal server error"}');
-        end;
-      end;
+      if not DM.UpdateCliente(Id, Nome, Email, Telefone) then
+        raise EHorseException.New.Status(THTTPStatus.NotFound).Error('cliente not found');
     finally
       DM.Free;
     end;
+
+    Res.Status(THTTPStatus.NoContent);
+
   finally
     Jo.Free;
   end;
@@ -182,33 +131,15 @@ var
   DM: TDataModule1;
   Id: Integer;
 begin
-  if not TryStrToInt(Req.Params['id'], Id) or (Id <= 0) then begin
-    Res.Status(400)
-       .ContentType('application/json')
-       .Send('{"error":"invalid id"}');
-    Exit;
-  end;
+  Id := GetIdParam(Req);
 
   DM := TDataModule1.Create(nil);
   try
-    try
-      if not DM.DeleteCliente(Id) then begin
-        Res.Status(404)
-           .ContentType('application/json')
-           .Send('{"error":"not found"}');
-        Exit;
-      end;
+    if not DM.DeleteCliente(Id) then
+      raise EHorseException.New.Status(THTTPStatus.NotFound).Error('cliente not found');
 
-      Res.Status(200)
-         .ContentType('application/json')
-         .Send('{"ok":true}');
-    except
-      on E: Exception do begin
-        Res.Status(500)
-           .ContentType('application/json')
-           .Send('{"error":"internal server error"}');
-      end;
-    end;
+    Res.Status(THTTPStatus.NoContent);
+
   finally
     DM.Free;
   end;
@@ -216,11 +147,15 @@ end;
 
 procedure RegisterClienteRoutes;
 begin
-  THorse.Get('/clientes', GetClientes);
-  THorse.Get('/clientes/:id', GetClienteById);
-  THorse.Post('/clientes', CreateCliente);
-  THorse.Put('/clientes/:id', UpdateCliente);
-  THorse.Delete('/clientes/:id', DeleteCliente);
+  with THorse do begin
+    Use(Jhonson);
+    Use(HandleException);
+    Get('/clientes', GetClientes);
+    Get('/clientes/:id', GetClienteById);
+    Post('/clientes', CreateCliente);
+    Put('/clientes/:id', UpdateCliente);
+    Delete('/clientes/:id', DeleteCliente);
+  end;
 end;
 
 end.
