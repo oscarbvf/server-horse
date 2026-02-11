@@ -4,12 +4,12 @@ interface
 
 uses
   uClienteModel,
-  System.Generics.Collections;
+  System.Generics.Collections, System.SysUtils;
 
 type
   TClienteService = class
   public
-    procedure Inserir(ACliente: TCliente);
+    function Inserir(ACliente: TCliente): Integer;
     function Listar: TObjectList<TCliente>;
     function ObterPorId(AId: Integer): TCliente;
   end;
@@ -21,9 +21,26 @@ uses
 
 { TClienteService }
 
-procedure TClienteService.Inserir(ACliente: TCliente);
+function TClienteService.Inserir(ACliente: TCliente): Integer;
+var
+  DM: TDataModule1;
 begin
-//  TDataModule1.InsertCliente(ACliente);
+  if Trim(ACliente.Nome) = '' then
+    raise Exception.Create('Nome is required');
+
+  if Trim(ACliente.Email) = '' then
+    raise Exception.Create('Email is required');
+
+  DM := TDataModule1.Create(nil);
+  try
+    Result := DM.InsertCliente(
+      ACliente.Nome,
+      ACliente.Email,
+      ACliente.Telefone
+    );
+  finally
+    DM.Free;
+  end;
 end;
 
 function TClienteService.Listar: TObjectList<TCliente>;

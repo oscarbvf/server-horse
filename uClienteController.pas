@@ -76,28 +76,29 @@ end;
 
 procedure CreateCliente(Req: THorseRequest; Res: THorseResponse);
 var
-  DM: TDataModule1;
+  Service: TClienteService;
+  Cliente: TCliente;
   Jo: TJSONObject;
   NovoId: Integer;
-  Nome, Email, Telefone: string;
 begin
   Jo := GetBodyAsJSON(Req);
-
   try
-
-    Nome := GetRequiredString(Jo, 'Nome');
-    Email := GetRequiredString(Jo, 'Email');
-    Telefone := GetOptionalString(Jo, 'Telefone');
-
-    DM := TDataModule1.Create(nil);
+    Cliente := TCliente.Create;
+    Service := TClienteService.Create;
     try
-      NovoId := DM.InsertCliente(Nome, Email, Telefone);
+      Cliente.Nome     := GetRequiredString(Jo, 'Nome');
+      Cliente.Email    := GetRequiredString(Jo, 'Email');
+      Cliente.Telefone := GetOptionalString(Jo, 'Telefone');
+
+      NovoId := Service.Inserir(Cliente);
 
       Res.Status(201)
          .ContentType('application/json')
          .Send(Format('{"id":%d}', [NovoId]));
+
     finally
-      DM.Free;
+      Service.Free;
+      Cliente.Free;
     end;
   finally
     Jo.Free;
