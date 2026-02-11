@@ -9,7 +9,7 @@ uses
   FireDAC.Stan.Param, FireDAC.DatS, FireDAC.DApt.Intf, FireDAC.DApt, Data.DB,
   FireDAC.Comp.DataSet, FireDAC.Comp.Client, FireDAC.Stan.ExprFuncs,
   FireDAC.Phys.SQLiteWrapper.Stat, FireDAC.Phys.SQLiteDef, FireDAC.Comp.UI,
-  FireDAC.Phys.SQLite, System.JSON;
+  FireDAC.Phys.SQLite, System.JSON, uClienteModel, System.Generics.Collections;
 
 type
   TDataModule1 = class(TDataModule)
@@ -29,7 +29,8 @@ type
     { Public declarations }
     procedure OpenClientes;
     procedure OpenClienteById(AId: Integer);
-    function LoadClienteById(AId: Integer; AJson: TJSONObject): Boolean;
+    function LoadClientes: TObjectList<TCliente>;
+    function LoadClienteById(AId: Integer): TCliente;
     function InsertCliente(
       const ANome, AEmail, ATelefone: string
     ): Integer;
@@ -160,23 +161,45 @@ begin
     FDConnection1.Commit;
   except
     FDConnection1.Rollback;
-    raise; // deixa o controller decidir o HTTP
+    raise;
   end;
 end;
 
-function TDataModule1.LoadClienteById(AId: Integer;
-  AJson: TJSONObject): Boolean;
+function TDataModule1.LoadClienteById(AId: Integer): TCliente;
 begin
+  Result := nil;
+
   OpenClienteById(AId);
 
-  Result := not FDQuery1.IsEmpty;
-  if not Result then
-    Exit;
+  with FDQuery1 do
+    if not IsEmpty then begin
+      Result := TCliente.Create;
+      Result.Id       := FieldByName('Id').AsInteger;
+      Result.Nome     := FieldByName('Nome').AsString;
+      Result.Email    := FieldByName('Email').AsString;
+      Result.Telefone := FieldByName('Telefone').AsString;
+    end;
+end;
 
-  AJson.AddPair('Id', TJSONNumber.Create(FDQuery1.FieldByName('Id').AsInteger));
-  AJson.AddPair('Nome', FDQuery1.FieldByName('Nome').AsString);
-  AJson.AddPair('Email', FDQuery1.FieldByName('Email').AsString);
-  AJson.AddPair('Telefone', FDQuery1.FieldByName('Telefone').AsString);
+function TDataModule1.LoadClientes: TObjectList<TCliente>;
+var
+  Cliente: TCliente;
+begin
+  Result := TObjectList<TCliente>.Create(True);
+
+  OpenClientes;
+
+  with FDQuery1 do
+    while not Eof do begin
+      Cliente          := TCliente.Create;
+      Cliente.Id       := FieldByName('Id').AsInteger;
+      Cliente.Nome     := FieldByName('Nome').AsString;
+      Cliente.Email    := FieldByName('Email').AsString;
+      Cliente.Telefone := FieldByName('Telefone').AsString;
+
+      Result.Add(Cliente);
+      Next;
+    end;
 end;
 
 procedure TDataModule1.OpenClienteById(AId: Integer);

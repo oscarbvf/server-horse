@@ -14,13 +14,23 @@ curl -i -X PUT http://localhost:9000/clientes/3 ^
 curl -i -X DELETE http://localhost:9000/clientes/4
 
 // Testes de erros:
-curl -i -X POST http://localhost:9000/clientes -H "Content-Type: application/json" -d '{bad json}'
+curl -i -X POST http://localhost:9000/clientes -H "Content-Type: application/json" -d "{bad json}"
 
 curl -i -X POST http://localhost:9000/clientes ^
   -H "Content-Type: application/json" ^
-  -d "{\"nome\":\"",\"email\":\"carlos@example.com\",\"telefone\":\"21999990003\"}"
+  -d "{\"Nome\":\"\",\"Email\":\"carlos@example.com\",\"Telefone\":\"21999990003\"}"
+
+curl -i -X POST http://localhost:9000/clientes ^
+  -H "Content-Type: application/json" ^
+  -d "{\"Nome\":\"Teste de nome\",\"Email\":\"\",\"Telefone\":\"21999990003\"}"
 
 curl -i -X PUT http://localhost:9000/clientes/999999 -H "Content-Type: application/json" -d "{\"Nome\":\"Joao\", \"Email\":\"joao@email.com\", \"Telefone\":\"5199999\"}"
 
 curl -i -X PUT http://localhost:9000/clientes/0 -H "Content-Type: application/json" -d "{\"Nome\":\"Joao\", \"Email\":\"joao@email.com\", \"Telefone\":\"5199999\"}"
 
+curl -i -X PUT http://localhost:9000/clientes/1 -H "Content-Type: application/json" -d "{bad json}"
+
+curl -i -X PUT http://localhost:9000/clientes/1 -H "Content-Type: application/json" -d "{\"Nome\":\"Joao\", \"Email\":\"\", \"Telefone\":\"5199999\"}"
+
+curl -i -X DELETE http://localhost:9000/clientes/0
+curl -i -X DELETE http://localhost:9000/clientes/9999
