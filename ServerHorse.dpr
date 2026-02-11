@@ -7,7 +7,9 @@ program ServerHorse;
 uses
   System.SysUtils,
   uMain in 'uMain.pas',
-  uClienteJsonMapper in 'uClienteJsonMapper.pas';
+  uClienteJsonMapper in 'uClienteJsonMapper.pas',
+  uClienteModel in 'uClienteModel.pas',
+  uClienteService in 'uClienteService.pas';
 
 begin
   try

@@ -12,58 +12,67 @@ implementation
 
 uses
   Horse.Request, Horse.Response, uClienteJsonMapper, Horse.Jhonson, Horse.HandleException,
-  uHttpHelpers;
+  uHttpHelpers, uClienteService, uClienteModel;
 
 procedure GetClientes(Req: THorseRequest; Res: THorseResponse);
 var
-  DM: TDataModule1;
+  Service: TClienteService;
+  Lista: TObjectList<TCliente>;
   Arr: TJSONArray;
+  Cliente: TCliente;
 begin
-  DM := TDataModule1.Create(nil);
+  Service := TClienteService.Create;
   try
-    DM.OpenClientes;
+    Lista := Service.Listar;
 
-    Arr := QueryToJSONArray(DM.FDQuery1);
+    Arr := TJSONArray.Create;
     try
+      for Cliente in Lista do
+        Arr.AddElement(ClienteToJson(Cliente));
+
       Res
-        .Status(200)
+        .Status(THTTPStatus.OK)
         .ContentType('application/json')
         .Send(Arr.ToJSON);
     finally
       Arr.Free;
+      Lista.Free;
     end;
   finally
-    DM.Free;
+    Service.Free;
   end;
 end;
 
 procedure GetClienteById(Req: THorseRequest; Res: THorseResponse);
 var
-  DM: TDataModule1;
   Id: Integer;
   Obj: TJSONObject;
+  Service: TClienteService;
+  Cliente: TCliente;
 begin
   Id := GetIdParam(Req);
 
-  DM := TDataModule1.Create(nil);
+  Service := TClienteService.Create;
   try
-    Obj := TJSONObject.Create;
-    try
-      if not DM.LoadClienteById(Id, Obj) then
-        raise EHorseException.New
-          .Status(THTTPStatus.NotFound)
-          .Error('cliente not found');
+    Cliente := Service.ObterPorId(Id);
+    if not Assigned(Cliente) then
+      raise EHorseException.New.Status(THTTPStatus.NotFound).Error('cliente not found');
 
+    Obj := ClienteToJson(Cliente);
+    try
       Res.Status(THTTPStatus.OK)
          .ContentType('application/json')
          .Send(Obj.ToJSON);
     finally
       Obj.Free;
+      Cliente.Free;
     end;
+
   finally
-    DM.Free;
+    Service.Free;
   end;
 end;
+
 
 procedure CreateCliente(Req: THorseRequest; Res: THorseResponse);
 var

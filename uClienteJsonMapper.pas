@@ -3,9 +3,10 @@ unit uClienteJsonMapper;
 interface
 
 uses
-  System.JSON, FireDAC.Comp.Client;
+  System.JSON, FireDAC.Comp.Client, uClienteModel;
 
 function QueryToJSONArray(AQuery: TFDQuery): TJSONArray;
+function ClienteToJSON(const Cliente: TCliente): TJSONObject;
 
 implementation
 
@@ -26,6 +27,15 @@ begin
     AQuery.Next;
   end;
   Result := arr;
+end;
+
+function ClienteToJSON(const Cliente: TCliente): TJSONObject;
+begin
+  Result := TJSONObject.Create;
+  Result.AddPair('Id', TJSONNumber.Create(Cliente.Id));
+  Result.AddPair('Nome', Cliente.Nome);
+  Result.AddPair('Email', Cliente.Email);
+  Result.AddPair('Telefone', Cliente.Telefone);
 end;
 
 end.
