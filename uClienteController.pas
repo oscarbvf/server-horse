@@ -23,7 +23,7 @@ var
 begin
   Service := TClienteService.Create;
   try
-    Lista := Service.Listar;
+    Lista := Service.GetClientes;
 
     Arr := TJSONArray.Create;
     try
@@ -54,7 +54,7 @@ begin
 
   Service := TClienteService.Create;
   try
-    Cliente := Service.ObterPorId(Id);
+    Cliente := Service.GetById(Id);
     if not Assigned(Cliente) then
       raise EHorseException.New.Status(THTTPStatus.NotFound).Error('cliente not found');
 
@@ -90,7 +90,7 @@ begin
       Cliente.Email    := GetRequiredString(Jo, 'Email');
       Cliente.Telefone := GetOptionalString(Jo, 'Telefone');
 
-      NovoId := Service.Inserir(Cliente);
+      NovoId := Service.Insert(Cliente);
 
       Res.Status(201)
          .ContentType('application/json')
@@ -108,29 +108,34 @@ end;
 procedure UpdateCliente(Req: THorseRequest; Res: THorseResponse);
 var
   Id: Integer;
-  DM: TDataModule1;
+  Service: TClienteService;
+  Cliente: TCliente;
   Jo: TJSONObject;
-  Nome, Email, Telefone: string;
+  Status: Boolean;
 begin
   Jo := GetBodyAsJSON(Req);
-
   try
     Id := GetIdParam(Req);
 
-    Nome := GetRequiredString(Jo, 'Nome');
-    Email := GetRequiredString(Jo, 'Email');
-    Telefone := GetOptionalString(Jo, 'Telefone');
-
-    DM := TDataModule1.Create(nil);
+    Cliente := TCliente.Create;
+    Service := TClienteService.Create;
     try
-      if not DM.UpdateCliente(Id, Nome, Email, Telefone) then
+      Cliente.Id := Id;
+      Cliente.Nome := GetRequiredString(Jo, 'Nome');
+      Cliente.Email := GetRequiredString(Jo, 'Email');
+      Cliente.Telefone := GetOptionalString(Jo, 'Telefone');
+
+      Status := Service.Update(Cliente);
+
+      if not Status then
         raise EHorseException.New.Status(THTTPStatus.NotFound).Error('cliente not found');
+
+      Res.Status(THTTPStatus.NoContent);
+
     finally
-      DM.Free;
+      Service.Free;
+      Cliente.Free;
     end;
-
-    Res.Status(THTTPStatus.NoContent);
-
   finally
     Jo.Free;
   end;
@@ -138,20 +143,23 @@ end;
 
 procedure DeleteCliente(Req: THorseRequest; Res: THorseResponse);
 var
-  DM: TDataModule1;
+  Service: TClienteService;
   Id: Integer;
+  Status: Boolean;
 begin
   Id := GetIdParam(Req);
 
-  DM := TDataModule1.Create(nil);
+  Service := TClienteService.Create;
   try
-    if not DM.DeleteCliente(Id) then
+    Status := Service.Delete(Id);
+
+    if not Status then
       raise EHorseException.New.Status(THTTPStatus.NotFound).Error('cliente not found');
 
     Res.Status(THTTPStatus.NoContent);
 
   finally
-    DM.Free;
+    Service.Free;
   end;
 end;
 
