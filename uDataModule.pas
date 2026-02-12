@@ -31,6 +31,7 @@ type
     procedure OpenClienteById(AId: Integer);
     function LoadClientes: TObjectList<TCliente>;
     function LoadClienteById(AId: Integer): TCliente;
+    function EmailExists(const AEmail: string; AIgnoreId: Integer = 0): Boolean;
     function InsertCliente(
       const ANome, AEmail, ATelefone: string
     ): Integer;
@@ -250,6 +251,25 @@ begin
     FDConnection1.Rollback;
     raise;
   end;
+end;
+
+function TDataModule1.EmailExists(const AEmail: string; AIgnoreId: Integer = 0): Boolean;
+begin
+  FDQuery1.Close;
+  FDQuery1.SQL.Text :=
+    'SELECT 1 FROM Clientes WHERE Email = :Email';
+
+  if AIgnoreId > 0 then
+    FDQuery1.SQL.Add('AND Id <> :Id');
+
+  FDQuery1.ParamByName('Email').AsString := AEmail;
+
+  if AIgnoreId > 0 then
+    FDQuery1.ParamByName('Id').AsInteger := AIgnoreId;
+
+  FDQuery1.Open;
+
+  Result := not FDQuery1.IsEmpty;
 end;
 
 end.
