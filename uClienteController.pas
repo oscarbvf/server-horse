@@ -90,7 +90,12 @@ begin
       Cliente.Email    := GetRequiredString(Jo, 'Email');
       Cliente.Telefone := GetOptionalString(Jo, 'Telefone');
 
-      NovoId := Service.Insert(Cliente);
+      try
+        NovoId := Service.Insert(Cliente);
+      except
+        on E: Exception do
+          raise EHorseException.New.Status(THTTPStatus.BadRequest).Error(E.Message);
+      end;
 
       Res.Status(201)
          .ContentType('application/json')
@@ -121,11 +126,16 @@ begin
     Service := TClienteService.Create;
     try
       Cliente.Id := Id;
-      Cliente.Nome := GetRequiredString(Jo, 'Nome');
-      Cliente.Email := GetRequiredString(Jo, 'Email');
+      Cliente.Nome     := GetRequiredString(Jo, 'Nome');
+      Cliente.Email    := GetRequiredString(Jo, 'Email');
       Cliente.Telefone := GetOptionalString(Jo, 'Telefone');
 
-      Status := Service.Update(Cliente);
+      try
+        Status := Service.Update(Cliente);
+      except
+        on E: Exception do
+          raise EHorseException.New.Status(THTTPStatus.BadRequest).Error(E.Message);
+      end;
 
       if not Status then
         raise EHorseException.New.Status(THTTPStatus.NotFound).Error('cliente not found');
