@@ -9,7 +9,9 @@ uses
   uMain in 'uMain.pas',
   uClienteJsonMapper in 'uClienteJsonMapper.pas',
   uClienteModel in 'uClienteModel.pas',
-  uClienteService in 'uClienteService.pas';
+  uClienteService in 'uClienteService.pas',
+  uDatabaseConfig in 'uDatabaseConfig.pas',
+  uDatabaseConstants in 'uDatabaseConstants.pas';
 
 begin
   try

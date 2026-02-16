@@ -9,7 +9,8 @@ uses
   FireDAC.Stan.Param, FireDAC.DatS, FireDAC.DApt.Intf, FireDAC.DApt, Data.DB,
   FireDAC.Comp.DataSet, FireDAC.Comp.Client, FireDAC.Stan.ExprFuncs,
   FireDAC.Phys.SQLiteWrapper.Stat, FireDAC.Phys.SQLiteDef, FireDAC.Comp.UI,
-  FireDAC.Phys.SQLite, System.JSON, uClienteModel, System.Generics.Collections;
+  FireDAC.Phys.SQLite, System.JSON, uClienteModel, System.Generics.Collections,
+  uDatabaseConstants;
 
 type
   TDataModule1 = class(TDataModule)
@@ -20,11 +21,8 @@ type
     procedure DataModuleCreate(Sender: TObject);
   private
     { Private declarations }
-    function GetDatabaseFilePath: string;
-    procedure ConfigureConnection;
-    procedure ConnectDatabase;
-    procedure InitializeDatabase;
-    procedure CreateClientesTable;
+    function NewQuery: TFDQuery;
+    procedure ExecuteInTransaction(const AProc: TProc);
   public
     { Public declarations }
     procedure OpenClientes;
@@ -35,10 +33,8 @@ type
     function InsertCliente(
       const ANome, AEmail, ATelefone: string
     ): Integer;
-    function UpdateCliente(
-      AId: Integer;
-      const ANome, AEmail, ATelefone: string
-    ): Boolean;
+    function UpdateCliente(AId: Integer; const ANome, AEmail, ATelefone: string
+      ): Boolean;
     function DeleteCliente(AId: Integer): Boolean;
   end;
 
@@ -48,159 +44,136 @@ implementation
 
 {$R *.dfm}
 
-procedure TDataModule1.ConfigureConnection;
-begin
-  FDConnection1.LoginPrompt := False;
-  FDConnection1.Params.Clear;
-  FDConnection1.Params.DriverID := 'SQLite';
-  FDConnection1.Params.Add('LockingMode=Normal');
-  FDConnection1.Params.Database := GetDatabaseFilePath;
-end;
-
-procedure TDataModule1.ConnectDatabase;
-begin
-  try
-    FDConnection1.Connected := True;
-  except
-    on E: Exception do
-      raise Exception.Create(
-        'Failed to connect to SQLite database. ' + E.Message
-      );
-  end;
-end;
-
-procedure TDataModule1.CreateClientesTable;
-begin
-  FDQuery1.Connection := FDConnection1;
-  FDQuery1.SQL.Text :=
-    'CREATE TABLE IF NOT EXISTS Clientes (' +
-    ' Id INTEGER PRIMARY KEY AUTOINCREMENT,' +
-    ' Nome TEXT NOT NULL,' +
-    ' Email TEXT,' +
-    ' Telefone TEXT' +
-    ')';
-
-  FDQuery1.ExecSQL;
-end;
-
 procedure TDataModule1.DataModuleCreate(Sender: TObject);
 begin
-  ConfigureConnection;
-  ConnectDatabase;
-  InitializeDatabase;
+  FDConnection1.ConnectionDefName := CONNECTION_NAME;
+  FDConnection1.LoginPrompt := False;
+  FDConnection1.Connected := True;
 end;
 
 function TDataModule1.DeleteCliente(AId: Integer): Boolean;
+var
+  Q: TFDQuery;
+  LDelId: Boolean;
 begin
+  LDelId := False;
 
-  if not FDConnection1.Connected then
-    FDConnection1.Connected := True;
+  ExecuteInTransaction(
+    procedure
+    begin
+      Q := NewQuery;
+      try
+        Q.SQL.Text :=
+          'DELETE FROM Clientes WHERE Id = :Id';
 
-  FDConnection1.StartTransaction;
-  try
-    FDQuery1.Close;
-    FDQuery1.SQL.Text :=
-      'DELETE FROM Clientes WHERE Id = :Id';
+        Q.ParamByName('Id').AsInteger := AId;
+        Q.ExecSQL;
 
-    FDQuery1.ParamByName('Id').AsInteger := AId;
-    FDQuery1.ExecSQL;
-
-    Result := FDQuery1.RowsAffected > 0;
-
-    if Result then
-      FDConnection1.Commit
-    else
-      FDConnection1.Rollback;
-  except
-    FDConnection1.Rollback;
-    raise;
-  end;
+        LDelId := Q.RowsAffected > 0;
+      finally
+        Q.Free;
+      end;
+    end
+  );
+  Result := LDelId;
 end;
 
-function TDataModule1.GetDatabaseFilePath: string;
+function TDataModule1.InsertCliente(const ANome, AEmail, ATelefone: string): Integer;
+var
+  Q: TFDQuery;
+  LNewId: Integer;
 begin
-  Result := ExtractFilePath(ParamStr(0)) + 'db\database.db';
-end;
+  LNewId := 0;
 
-procedure TDataModule1.InitializeDatabase;
-begin
-  FDConnection1.StartTransaction;
-  try
-    CreateClientesTable;
-    FDConnection1.Commit;
-  except
-    FDConnection1.Rollback;
-    raise;
-  end;
-end;
+  ExecuteInTransaction(
+    procedure
+    begin
+      Q := NewQuery;
+      try
+        Q.SQL.Text :=
+          'INSERT INTO Clientes (Nome, Email, Telefone) ' +
+          'VALUES (:Nome, :Email, :Telefone)';
 
-function TDataModule1.InsertCliente(const ANome, AEmail,
-  ATelefone: string): Integer;
-begin
+        Q.ParamByName('Nome').AsString     := ANome;
+        Q.ParamByName('Email').AsString    := AEmail;
+        Q.ParamByName('Telefone').AsString := ATelefone;
+        Q.ExecSQL;
 
-  if not FDConnection1.Connected then
-    FDConnection1.Connected := True;
+        Q.Close;
+        Q.SQL.Text := 'SELECT last_insert_rowid() AS Id';
+        Q.Open;
 
-  FDConnection1.StartTransaction;
-  try
-    FDQuery1.Close;
-    FDQuery1.SQL.Text :=
-      'INSERT INTO Clientes (Nome, Email, Telefone) ' +
-      'VALUES (:Nome, :Email, :Telefone)';
-
-    FDQuery1.ParamByName('Nome').AsString := ANome;
-    FDQuery1.ParamByName('Email').AsString := AEmail;
-    FDQuery1.ParamByName('Telefone').AsString := ATelefone;
-    FDQuery1.ExecSQL;
-
-    FDQuery1.Close;
-    FDQuery1.SQL.Text := 'SELECT last_insert_rowid() AS Id';
-    FDQuery1.Open;
-
-    Result := FDQuery1.FieldByName('Id').AsInteger;
-
-    FDConnection1.Commit;
-  except
-    FDConnection1.Rollback;
-    raise;
-  end;
+        LNewId := Q.FieldByName('Id').AsInteger;
+      finally
+        Q.Free;
+      end;
+    end
+  );
+  Result := LNewId;
 end;
 
 function TDataModule1.LoadClienteById(AId: Integer): TCliente;
+var
+  Q: TFDQuery;
 begin
   Result := nil;
 
-  OpenClienteById(AId);
+  Q := NewQuery;
+  try
+    Q.SQL.Text :=
+      'SELECT Id, Nome, Email, Telefone ' +
+      'FROM Clientes WHERE Id = :Id';
 
-  with FDQuery1 do
-    if not IsEmpty then begin
+    Q.ParamByName('Id').AsInteger := AId;
+    Q.Open;
+
+    if not Q.IsEmpty then
+    begin
       Result := TCliente.Create;
-      Result.Id       := FieldByName('Id').AsInteger;
-      Result.Nome     := FieldByName('Nome').AsString;
-      Result.Email    := FieldByName('Email').AsString;
-      Result.Telefone := FieldByName('Telefone').AsString;
+      Result.Id       := Q.FieldByName('Id').AsInteger;
+      Result.Nome     := Q.FieldByName('Nome').AsString;
+      Result.Email    := Q.FieldByName('Email').AsString;
+      Result.Telefone := Q.FieldByName('Telefone').AsString;
     end;
+  finally
+    Q.Free;
+  end;
 end;
 
 function TDataModule1.LoadClientes: TObjectList<TCliente>;
 var
+  Q: TFDQuery;
   Cliente: TCliente;
 begin
   Result := TObjectList<TCliente>.Create(True);
 
-  OpenClientes;
+  Q := NewQuery;
+  try
+    Q.SQL.Text :=
+      'SELECT Id, Nome, Email, Telefone FROM Clientes';
 
-  with FDQuery1 do
-    while not Eof do begin
-      Cliente          := TCliente.Create;
-      Cliente.Id       := FieldByName('Id').AsInteger;
-      Cliente.Nome     := FieldByName('Nome').AsString;
-      Cliente.Email    := FieldByName('Email').AsString;
-      Cliente.Telefone := FieldByName('Telefone').AsString;
+    Q.Open;
+
+    while not Q.Eof do
+    begin
+      Cliente := TCliente.Create;
+      Cliente.Id       := Q.FieldByName('Id').AsInteger;
+      Cliente.Nome     := Q.FieldByName('Nome').AsString;
+      Cliente.Email    := Q.FieldByName('Email').AsString;
+      Cliente.Telefone := Q.FieldByName('Telefone').AsString;
 
       Result.Add(Cliente);
-      Next;
+      Q.Next;
     end;
+  finally
+    Q.Free;
+  end;
+end;
+
+function TDataModule1.NewQuery: TFDQuery;
+begin
+  Result := TFDQuery.Create(nil);
+  Result.Connection := FDConnection1;
 end;
 
 procedure TDataModule1.OpenClienteById(AId: Integer);
@@ -220,56 +193,75 @@ begin
   FDQuery1.Open;
 end;
 
-function TDataModule1.UpdateCliente(AId: Integer; const ANome, AEmail,
-  ATelefone: string): Boolean;
+function TDataModule1.UpdateCliente(AId: Integer; const ANome, AEmail, ATelefone: string
+): Boolean;
+var
+  Q: TFDQuery;
+  LUpdId: Boolean;
 begin
+  LUpdId := False;
 
-  if not FDConnection1.Connected then
-    FDConnection1.Connected := True;
+  ExecuteInTransaction(
+    procedure
+    begin
+      Q := NewQuery;
+      try
+        Q.SQL.Text :=
+          'UPDATE Clientes ' +
+          'SET Nome = :Nome, Email = :Email, Telefone = :Telefone ' +
+          'WHERE Id = :Id';
 
+        Q.ParamByName('Nome').AsString     := ANome;
+        Q.ParamByName('Email').AsString    := AEmail;
+        Q.ParamByName('Telefone').AsString := ATelefone;
+        Q.ParamByName('Id').AsInteger      := AId;
+
+        Q.ExecSQL;
+
+        LUpdId := Q.RowsAffected > 0;
+      finally
+        Q.Free;
+      end;
+    end
+  );
+  Result := LUpdId;
+end;
+
+function TDataModule1.EmailExists(const AEmail: string; AIgnoreId: Integer = 0): Boolean;
+var
+  Q: TFDQuery;
+begin
+  Q := NewQuery;
+  try
+    Q.SQL.Text :=
+      'SELECT 1 FROM Clientes WHERE Email = :Email';
+
+    if AIgnoreId > 0 then
+      Q.SQL.Add('AND Id <> :Id');
+
+    Q.ParamByName('Email').AsString := AEmail;
+
+    if AIgnoreId > 0 then
+      Q.ParamByName('Id').AsInteger := AIgnoreId;
+
+    Q.Open;
+
+    Result := not Q.IsEmpty;
+  finally
+    Q.Free;
+  end;
+end;
+
+procedure TDataModule1.ExecuteInTransaction(const AProc: TProc);
+begin
   FDConnection1.StartTransaction;
   try
-    FDQuery1.Close;
-    FDQuery1.SQL.Text :=
-      'UPDATE Clientes ' +
-      'SET Nome = :Nome, Email = :Email, Telefone = :Telefone ' +
-      'WHERE Id = :Id';
-
-    FDQuery1.ParamByName('Nome').AsString := ANome;
-    FDQuery1.ParamByName('Email').AsString := AEmail;
-    FDQuery1.ParamByName('Telefone').AsString := ATelefone;
-    FDQuery1.ParamByName('Id').AsInteger := AId;
-    FDQuery1.ExecSQL;
-
-    Result := FDQuery1.RowsAffected > 0;
-
-    if Result then
-      FDConnection1.Commit
-    else
-      FDConnection1.Rollback;
+    AProc;
+    FDConnection1.Commit;
   except
     FDConnection1.Rollback;
     raise;
   end;
-end;
-
-function TDataModule1.EmailExists(const AEmail: string; AIgnoreId: Integer = 0): Boolean;
-begin
-  FDQuery1.Close;
-  FDQuery1.SQL.Text :=
-    'SELECT 1 FROM Clientes WHERE Email = :Email';
-
-  if AIgnoreId > 0 then
-    FDQuery1.SQL.Add('AND Id <> :Id');
-
-  FDQuery1.ParamByName('Email').AsString := AEmail;
-
-  if AIgnoreId > 0 then
-    FDQuery1.ParamByName('Id').AsInteger := AIgnoreId;
-
-  FDQuery1.Open;
-
-  Result := not FDQuery1.IsEmpty;
 end;
 
 end.

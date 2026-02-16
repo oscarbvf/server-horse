@@ -4,7 +4,7 @@ interface
 
 uses
   Horse, System.SysUtils, uClienteController, Horse.Request, Horse.Response,
-  Horse.Core, Vcl.Dialogs;
+  Horse.Core, Vcl.Dialogs, uDatabaseConfig;
 
 procedure StartServer;
 
@@ -12,6 +12,7 @@ implementation
 
 procedure StartServer;
 begin
+  InitializeDatabaseInfrastructure;
   RegisterClienteRoutes;
 
   Writeln('Server starting on http://0.0.0.0:9000 ...');

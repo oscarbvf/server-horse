@@ -95,6 +95,8 @@
         <DCCReference Include="uClienteJsonMapper.pas"/>
         <DCCReference Include="uClienteModel.pas"/>
         <DCCReference Include="uClienteService.pas"/>
+        <DCCReference Include="uDatabaseConfig.pas"/>
+        <DCCReference Include="uDatabaseConstants.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
