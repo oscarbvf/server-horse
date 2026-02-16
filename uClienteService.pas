@@ -32,7 +32,7 @@ begin
 
   DM := TDataModule1.Create(nil);
   try
-    if DM.EmailExists(ACliente.Email) then
+    if DM.EmailExists(ACliente.Email, ACliente.Id) then
       raise Exception.Create('Email already exists');
 
     Result := DM.UpdateCliente(
