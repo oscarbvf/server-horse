@@ -104,8 +104,7 @@ ServerHorse/
 │ └── *.pas
 ├── Models/
 │ └── *.pas
-├── Data/
-│ └── Database.db
+├── Infrastructure/
 ├── Services/
 │ └── *.pas
 ├── modules/
